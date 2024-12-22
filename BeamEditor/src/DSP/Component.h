@@ -7,7 +7,7 @@ class Component {
     public:
         Component() {}
 
-        virtual array<double, 100> processChunk(array<double, 100> inChunk) {
+        virtual array<double, 100> processChunk(const array<double, 100>& inChunk) {
             return inChunk;
         }
 
