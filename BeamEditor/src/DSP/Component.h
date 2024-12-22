@@ -3,10 +3,7 @@
 using namespace std;
 
 class Component {
-
-    private: 
         
-
     public:
         Component() {}
 
