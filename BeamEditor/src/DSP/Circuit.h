@@ -38,15 +38,17 @@ class Circuit {
             return this->outChunk;
         }
 
-        void processChunk() {
+        array<double, 100> processChunk() {
 
             array<double, 100> intermediateChunk;
             intermediateChunk = inChunk;
                 for(Component c : components) {
                     intermediateChunk = c.processChunk(intermediateChunk);
                 }
+            return intermediateChunk;
 
         }
+
         
         
 };
