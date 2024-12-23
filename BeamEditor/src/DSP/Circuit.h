@@ -12,9 +12,6 @@ using namespace std;
 class Circuit {
     private: 
 
-        array<double,100> inChunk;
-        array<double,100> outChunk;
-
 
         vector<Component> components;
 
@@ -30,15 +27,7 @@ class Circuit {
             this->outChunk.fill(0.0);
         }
 
-        void setInChunk(array<double, 100> inChunk) {
-            this->inChunk = inChunk;
-        }
-
-        array<double, 100> getOutChunk() {
-            return this->outChunk;
-        }
-
-        array<double, 100> processChunk() {
+        array<double,100> processChunk(const array<double,100>& inChunk) {
 
             array<double, 100> intermediateChunk;
             intermediateChunk = inChunk;
