@@ -2,6 +2,7 @@
 #include<vector>
 #include<Circuit.h>
 #include<AudioUtils.h>
+#include<CircuitWorker.h>
 
 using namespace std;
 
@@ -44,14 +45,29 @@ class Mixer {
 
         void mix() { 
             vector<vector<vector<double>>> chunks = utils.makeChunks(channels); //Separate the channel data into chunks for the Circuits
+            vector<CircuitWorker> workers;
+            
             for(Circuit c : circuits) {
+                CircuitWorker cWorker = CirciitWorker(c);
+                workers.push_back(cWorker);
 
             }
+
+            for(int i=0; i<chunks.size(); i++){
+                for(int j=0; j<chunks[i].size(); j++) {
+                    workers[i].addChunk(chunks[i][j]);
+                }
+            }
+        }
+                
 
 
 
 
         }
+
+        
+            
 
 
         
