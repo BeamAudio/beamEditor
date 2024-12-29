@@ -1,58 +1,76 @@
-#include<AudioFormat.h>
-#include<vector>
-#include<Circuit.h>
-#include<AudioUtils.h>
+#include <AudioFormat.h>
+#include <vector>
+#include <Circuit.h>
+#include <AudioUtils.h>
+#include <thread>
+#include <future>
+#include <atomic>
 
 using namespace std;
 
-#include<thread>
-
 class Mixer {
-    private: 
-        vector<AudioFormat> formats; //The format of the audio channels
-        int numChannels;
-        vector<Circuit> circuits; //The circuits for the data processing
-        vector<vector<double>> channels; //The actual Channels that have the audio data
-        vector<double> amplification; //Sets the amplification output to each circuit
-        vector<double> panning; //Sets the panning to each circuit
-        AudioUtils utils;
+private:
+    vector<AudioFormat> formats;
+    int numChannels;
+    vector<Circuit> circuits;
+    vector<vector<double>> channels;
+    vector<double> amplification;
+    vector<double> panning; 
+    AudioUtils utils;
+    atomic<bool> isRunning; 
 
-        
+public:
+    Mixer() : isRunning(true) {}
 
-    public:
-        Mixer() {
+    Mixer(vector<AudioFormat> formats, vector<vector<double>> channels) 
+        : formats(formats), numChannels(formats.size()), channels(channels), 
+          amplification(numChannels, 1.0), panning(numChannels, 0.5), isRunning(true) {}
 
+    void setCircuits(const vector<Circuit>& circuits) { 
+        this->circuits = circuits;
+    }
+
+    void setAmplification(const vector<double>& amplification) {
+        this->amplification = amplification;
+    }
+
+    void setPanning(const vector<double>& panning) {
+        this->panning = panning;
+    }
+
+    vector<double> processAudio(const vector<vector<double>>& inputChunks) {
+        vector<future<vector<double>>> results;
+        vector<double> mixedOutput(inputChunks[0].size(), 0.0); 
+
+        for (size_t i = 0; i < numChannels; ++i) {
+            results.push_back(async(launch::async, [&, i]() { 
+                vector<double> processedChunk = circuits[i].processChunk(inputChunks[i]);
+                for (size_t j = 0; j < processedChunk.size(); ++j) {
+                    processedChunk[j] *= amplification[i]; 
+                }
+                return processedChunk; 
+            }));
         }
 
-        Mixer(vector<AudioFormat> formats, vector<vector<double>> channels) {
-            this->numChannels = 0;
-
-            for(AudioFormat f : formats) {
-                numChannels++;
+        for (size_t i = 0; i < numChannels; ++i) {
+            vector<double> channelOutput = results[i].get(); 
+            for (size_t j = 0; j < channelOutput.size(); ++j) {
+                mixedOutput[j] += channelOutput[j]; 
             }
-
-            this->formats = formats;
-            this->channels = channels;
-            
         }
 
-        void setCircuits(vector<Circuit> circuits) { 
-            this->circuits = circuits;
-        }
+        return mixedOutput;
+    }
 
-        //The mix method has to open n new threads, one for each double array in channels, and all of them run in parallel. When a chunk is finished, all the threads should join and the mixer has to retrieve their output buffer to play it back
+    void start() {
+        // Implement real-time processing logic here
+        // 1. Continuously receive new audio data for each channel
+        // 2. Call processAudio() with the new data
+        // 3. Output the mixedOutput 
+        // 4. Check isRunning flag to stop the processing loop
+    }
 
-        void mix() { 
-            vector<vector<vector<double>>> chunks = utils.makeChunks(channels); //Separate the channel data into chunks for the Circuits
-            for(Circuit c : circuits) {
-
-            }
-
-
-
-
-        }
-
-
-        
+    void stop() {
+        isRunning = false; 
+    }
 };
