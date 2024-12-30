@@ -62,9 +62,6 @@ private:
     }
 
     void outputProcessedChunk(const array<double, 100>& chunk) {
-        for (double value : chunk) {
-            cout << value << " ";
-        }
-        cout << endl;
+        //Output to the playback buffer class
     }
 };
