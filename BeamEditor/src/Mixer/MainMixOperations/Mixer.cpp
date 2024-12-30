@@ -3,11 +3,12 @@
 Mixer::Mixer(vector<AudioFormat> formats, vector<vector<double>> channels)
     : formats(formats), numChannels(formats.size()), channels(channels),
       amplification(numChannels, 1.0), panning(numChannels, 0.5), isRunning(true),
-      currentChunkId(0), lastProcessTime(chrono::steady_clock::now()) {
+      currentChunkId(0), nextChunkId((currentChunkId + 1) % chunks[0].size()),
+      targetSampleRate(44100.0), 
+      maxProcessingLatency(static_cast<chrono::microseconds>(1000000 / targetSampleRate * 0.75)) { 
+        // 75% of the sample time for processing
     // Create CircuitWorkers for each channel
-    for (size_t i = 0; i < circuits.size(); ++i) {
-        workers.push_back(make_unique<CircuitWorker>(circuits[i], i)); 
-    }
+    
 }
 
 Mixer::~Mixer() {
@@ -47,14 +48,15 @@ void Mixer::processAudio() {
     vector<vector<vector<double>>> chunks = utils.makeChunks(channels);
 
     while (isRunning) {
-        // Distribute chunks to workers with their IDs
+        // Distribute next chunk to workers
         for (size_t i = 0; i < workers.size(); ++i) {
-            pendingResults[currentChunkId] = workers[i]->addChunk(chunks[i][currentChunkId], currentChunkId); 
+            pendingResults[nextChunkId] = workers[i]->addChunk(chunks[i][nextChunkId], nextChunkId); 
         }
 
         // Retrieve processed chunks (asynchronously)
         vector<vector<double>> processedChunks(workers.size());
         bool allChunksReady = false;
+        auto startTime = chrono::steady_clock::now(); 
         while (!allChunksReady) {
             allChunksReady = true;
             for (size_t i = 0; i < workers.size(); ++i) {
@@ -72,16 +74,14 @@ void Mixer::processAudio() {
                     break; 
                 }
             }
-            // Calculate time elapsed since last processing
+            // Check if processing time exceeds the limit
             auto now = chrono::steady_clock::now();
-            auto elapsed = chrono::duration_cast<chrono::microseconds>(now - lastProcessTime);
-
-            // Adjust sleep duration based on target sample rate
-            auto targetSleepTime = chrono::microseconds(1000000 / targetSampleRate); // Calculate target sleep time in microseconds
-            if (elapsed < targetSleepTime) { 
-                this_thread::sleep_for(targetSleepTime - elapsed); 
+            auto elapsed = chrono::duration_cast<chrono::microseconds>(now - startTime); 
+            if (elapsed > maxProcessingLatency) { 
+                cerr << "Bottleneck detected in circuit processing! Exceeded processing time limit." << endl;
+                isRunning = false; 
+                return;
             }
-            lastProcessTime = now; 
         }
 
         // Remove completed futures from the map
@@ -96,8 +96,14 @@ void Mixer::processAudio() {
         // Update currentChunkId and notify waiting threads
         {
             unique_lock<mutex> lock(mixerMutex);
-            currentChunkId = (currentChunkId + 1) % chunks[0].size(); 
+            currentChunkId = nextChunkId; 
+            nextChunkId = (nextChunkId + 1) % chunks[0].size(); 
         }
         chunkReadyCondVar.notify_all(); 
+
+        // Immediately start processing the next chunk
+        for (size_t i = 0; i < workers.size(); ++i) {
+            pendingResults[nextChunkId] = workers[i]->addChunk(chunks[i][nextChunkId], nextChunkId); 
+        }
     }
 }
