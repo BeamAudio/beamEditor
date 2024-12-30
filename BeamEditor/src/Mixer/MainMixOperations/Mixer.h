@@ -38,33 +38,31 @@ public:
         this->panning = panning;
     }
 
-    vector<double> processAudio(const vector<vector<double>>& inputChunks) {
-        vector<future<vector<double>>> results;
-        vector<double> mixedOutput(inputChunks[0].size(), 0.0); 
+    void setIsRunning(const bool& isRunning) {
+        this->isRunning = isRunning;
+    }
 
-        for (size_t i = 0; i < numChannels; ++i) {
-            results.push_back(async(launch::async, [&, i]() { 
-                vector<double> processedChunk = circuits[i].processChunk(inputChunks[i]);
-                for (size_t j = 0; j < processedChunk.size(); ++j) {
-                    processedChunk[j] *= amplification[i]; 
-                }
-                return processedChunk; 
-            }));
-        }
+    
 
-        for (size_t i = 0; i < numChannels; ++i) {
-            vector<double> channelOutput = results[i].get(); 
-            for (size_t j = 0; j < channelOutput.size(); ++j) {
-                mixedOutput[j] += channelOutput[j]; 
+    void start() {
+        vector<CircuitWorker> workers; //We create the actual circuit workers from the circuit templates
+        int channelSize;
+        // Implement real-time processing logic here
+        // 1. Continuously receive new audio data for each channel (We assume data is preloaded into the mixer before playing
+        // We assume that the vector of circuits contains one circuit per channel of the mixer, independently of stereo or mono
+        // If the channel is stereo, we need to adjust for it by running left and right channels through two parallel circuits
+        for(size_t i = 0; i<channels.size(); i++) {
+            //We are in channel i
+            for(size_t j = 0; j<channels[i].size(); j++) {
+                workers.push_back(CircuitWorker(circuits[i]));//We create copies in the form of workers for each channel
             }
         }
 
-        return mixedOutput;
-    }
-
-    void start() {
-        // Implement real-time processing logic here
-        // 1. Continuously receive new audio data for each channel
+        vector<vector<vector<double>>> chunks = utils.makeChunks(channels);
+        
+        
+            
+        
         // 2. Call processAudio() with the new data
         // 3. Output the mixedOutput 
         // 4. Check isRunning flag to stop the processing loop
