@@ -1,67 +1,46 @@
+// CircuitWorker.cpp
+
 #include "CircuitWorker.h"
 
-CircuitWorker::CircuitWorker(const Circuit& circuit, size_t workerId) 
-    : circuit(circuit), workerId(workerId), stopFlag(false) {
-    workerThread = thread(&CircuitWorker::processChunks, this); 
+CircuitWorker::CircuitWorker(const Circuit& circuit) 
+    : circuit(circuit), isRunning(true) {
+    workerThread = thread(&CircuitWorker::workerLoop, this); 
 }
 
-CircuitWorker::~CircuitWorker() {
-    stop(); 
-    if (workerThread.joinable()) {
-        workerThread.join(); 
-    }
+future<vector<double>> CircuitWorker::addChunk(const vector<double>& chunk, size_t chunkId) {
+    unique_lock<mutex> lock(mutex_);
+    workQueue.push({chunkId, chunk});
+    condVar_.notify_one(); 
+
+    promise<vector<double>> promise;
+    future<vector<double>> futureResult = promise.get_future();
+
+    // Store the promise in the pendingResults map
+    pendingResults[chunkId] = move(promise); 
+
+    return futureResult;
 }
 
-void CircuitWorker::addChunk(const vector<double>& chunk, size_t chunkId) {
-    unique_lock<mutex> lock(queueMutex); 
-    chunks.push({chunkId, chunk}); 
-    lock.unlock();
-    condVar.notify_one(); 
-}
+void CircuitWorker::workerLoop() {
+    while (isRunning) {
+        unique_lock<mutex> lock(mutex_);
+        condVar_.wait(lock, [this] { return !workQueue.empty() || !isRunning; });
 
-void CircuitWorker::stop() {
-    {
-        unique_lock<mutex> lock(queueMutex);
-        stopFlag = true; 
-    }
-    condVar.notify_all(); 
-}
+        if (isRunning && !workQueue.empty()) {
+            pair<size_t, vector<double>> chunkPair = workQueue.front();
+            size_t chunkId = chunkPair.first;
+            vector<double> chunk = move(chunkPair.second);
+            workQueue.pop();
+            lock.unlock();
 
-future<pair<size_t, vector<double>>> CircuitWorker::getProcessedChunk() {
-    unique_lock<mutex> lock(queueMutex);
-    condVar.wait(lock, [this] { return !processedChunks.empty() || stopFlag; }); 
+            vector<double> processedChunk = circuit.process(chunk); 
 
-    if (stopFlag) {
-        throw runtime_error("Worker thread stopped.");
-    }
-
-    pair<size_t, vector<double>> processedChunk = move(processedChunks.front()); 
-    processedChunks.pop();
-    lock.unlock();
-
-    return future<pair<size_t, vector<double>>>(move(processedChunk));
-}
-
-void CircuitWorker::processChunks() {
-    unique_lock<mutex> lock(queueMutex);
-    while (!stopFlag) {
-        condVar.wait(lock, [this] { return !chunks.empty() || stopFlag; }); 
-
-        if (stopFlag) {
-            break;
+            // Get the corresponding promise from the map
+            auto it = pendingResults.find(chunkId);
+            if (it != pendingResults.end()) {
+                it->second.set_value(processedChunk); 
+                pendingResults.erase(it); // Remove the promise from the map
+            }
         }
-
-        auto chunkPair = move(chunks.front());
-        size_t chunkId = chunkPair.first;
-        vector<double> chunk = move(chunkPair.second);
-        chunks.pop();
-        lock.unlock(); 
-
-        vector<double> processedChunk = circuit.process(chunk); 
-        {
-            lock_guard<mutex> lock(queueMutex);
-            processedChunks.push({chunkId, move(processedChunk)}); 
-        }
-        condVar.notify_one(); 
     }
 }
