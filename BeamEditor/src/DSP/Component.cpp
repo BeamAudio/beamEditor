@@ -4,6 +4,6 @@
 
 Component::Component() {}
 
-array<double, 100> Component::processChunk(const array<double, 100>& inChunk) {
+vector<double> Component::processChunk(const vector<double>& inChunk) {
     return inChunk;
 }
