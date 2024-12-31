@@ -9,7 +9,7 @@
 #include <queue>
 #include <vector>
 
-class Circuit;
+
 
 class CircuitWorker {
 public:
