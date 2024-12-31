@@ -1,6 +1,6 @@
 #include "Mixer.h"
 
-Mixer::Mixer(vector<AudioFormat> formats, vector<vector<double>> channels)
+Mixer::Mixer(vector<AudioFormat> formats, vector<vector<vector<double>>> channels)
     : formats(formats), numChannels(formats.size()), channels(channels),
       amplification(numChannels, 1.0), panning(numChannels, 0.5), isRunning(true),
       currentChunkId(0), nextChunkId((currentChunkId + 1) % chunks[0].size()),
