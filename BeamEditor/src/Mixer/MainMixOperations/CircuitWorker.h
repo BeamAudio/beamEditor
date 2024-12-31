@@ -3,34 +3,25 @@
 
 #include <thread>
 #include <future>
-#include <atomic>
 #include <mutex>
 #include <condition_variable>
 #include <queue>
-#include <vector>
 
-
+#include "Circuit.h"
 
 class CircuitWorker {
 public:
-    CircuitWorker(const Circuit& circuit, size_t workerId); 
-    ~CircuitWorker();
-
-    void addChunk(const vector<double>& chunk, size_t chunkId); 
-
-    future<pair<size_t, vector<double>>> getProcessedChunk(); 
+    CircuitWorker(const Circuit& circuit);
+    future<vector<double>> addChunk(const vector<double>& chunk, size_t chunkId);
 
 private:
     const Circuit& circuit;
-    size_t workerId;
     thread workerThread;
-    queue<pair<size_t, vector<double>>> chunks; 
-    queue<pair<size_t, vector<double>>> processedChunks;
-    mutex queueMutex;
-    condition_variable condVar;
-    atomic<bool> stopFlag;
-
-    void processChunks(); 
+    mutex mutex_;
+    condition_variable condVar_;
+    queue<pair<size_t, vector<double>>> workQueue; 
+    bool isRunning;
+    void workerLoop();
 };
 
 #endif // CIRCUIT_WORKER_H
