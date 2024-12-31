@@ -1,70 +1,36 @@
+#ifndef CIRCUIT_WORKER_H
+#define CIRCUIT_WORKER_H
+
 #include <thread>
+#include <future>
+#include <atomic>
 #include <mutex>
 #include <condition_variable>
 #include <queue>
-#include <array>
-#include <iostream>
+#include <vector>
 
-using namespace std;
+
 
 class CircuitWorker {
 public:
-    CircuitWorker(Circuit& circuit) : circuit(circuit), stopFlag(false) {
-        workerThread = thread(&CircuitWorker::processChunks, this);
-    }
+    CircuitWorker(const Circuit& circuit, size_t workerId); 
+    ~CircuitWorker();
 
-    ~CircuitWorker() {
-        stop(); 
-        if (workerThread.joinable()) {
-            workerThread.join();
-        }
-    }
+    void addChunk(const vector<double>& chunk, size_t chunkId); 
 
-    void addChunk(const array<double, 100>& chunk) {
-        unique_lock<mutex> lock(queueMutex);
-        chunks.push(chunk);
-        lock.unlock();
-        condVar.notify_one(); 
-    }
-
-    void stop() {
-        {
-            unique_lock<mutex> lock(queueMutex);
-            stopFlag = true;
-        }
-        condVar.notify_all(); 
-    }
+    future<pair<size_t, vector<double>>> getProcessedChunk(); 
 
 private:
-    Circuit& circuit;
+    const Circuit& circuit;
+    size_t workerId;
     thread workerThread;
-    queue<array<double, 100>> chunks;
+    queue<pair<size_t, vector<double>>> chunks; 
+    queue<pair<size_t, vector<double>>> processedChunks;
     mutex queueMutex;
     condition_variable condVar;
-    bool stopFlag;
+    atomic<bool> stopFlag;
 
-    void processChunks() {
-        unique_lock<mutex> lock(queueMutex);
-        while (!stopFlag) {
-            condVar.wait(lock, [this] { return !chunks.empty() || stopFlag; });
-
-            if (stopFlag) {
-                break;
-            }
-
-            array<double, 100> chunk = chunks.front();
-            chunks.pop();
-            lock.unlock(); 
-
-            array<double, 100> processedChunk = circuit.processChunk(chunk);
-            outputProcessedChunk(processedChunk);
-        }
-    }
-
-    void outputProcessedChunk(const array<double, 100>& chunk) {
-        for (double value : chunk) {
-            cout << value << " ";
-        }
-        cout << endl;
-    }
+    void processChunks(); 
 };
+
+#endif // CIRCUIT_WORKER_H

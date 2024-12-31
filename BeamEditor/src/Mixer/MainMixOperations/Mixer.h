@@ -1,74 +1,52 @@
-#include<AudioFormat.h>
-#include<vector>
-#include<Circuit.h>
-#include<AudioUtils.h>
-#include<CircuitWorker.h>
 
-using namespace std;
+#ifndef MIXER_H
+#define MIXER_H
 
-#include<thread>
+#include <vector>
+#include <atomic>
+#include <thread>
+#include <mutex>
+#include <condition_variable>
+#include <queue>
+#include <memory>
+#include <unordered_map>
+#include <chrono>
+
+#include "CircuitWorker.h"
+#include "AudioFormat.h"
+#include "AudioUtils.h"
 
 class Mixer {
-    private: 
-        vector<AudioFormat> formats; //The format of the audio channels
-        int numChannels;
-        vector<Circuit> circuits; //The circuits for the data processing
-        vector<vector<double>> channels; //The actual Channels that have the audio data
-        vector<double> amplification; //Sets the amplification output to each circuit
-        vector<double> panning; //Sets the panning to each circuit
-        AudioUtils utils;
+public:
+    Mixer(vector<AudioFormat> formats, vector<vector<double>> channels);
+    ~Mixer();
 
-        
+    void setCircuits(const vector<Circuit>& circuits);
+    void setAmplification(const vector<double>& amplification);
+    void setPanning(const vector<double>& panning);
 
-    public:
-        Mixer() {
+    void start();
+    void stop();
 
-        }
+private:
+    vector<AudioFormat> formats;
+    int numChannels;
+    vector<Circuit> circuits;
+    vector<vector<double>> channels;
+    vector<double> amplification;
+    vector<double> panning;
+    AudioUtils utils;
+    atomic<bool> isRunning;
+    vector<unique_ptr<CircuitWorker>> workers; 
+    size_t currentChunkId;
+    mutex mixerMutex;
+    condition_variable chunkReadyCondVar; 
+    unordered_map<size_t, future<vector<double>>> pendingResults; 
+    chrono::steady_clock::time_point lastProcessTime; 
+    const double targetSampleRate = 44100.0; // Sample rate in Hz
 
-        Mixer(vector<AudioFormat> formats, vector<vector<double>> channels) {
-            this->numChannels = 0;
-
-            for(AudioFormat f : formats) {
-                numChannels++;
-            }
-
-            this->formats = formats;
-            this->channels = channels;
-            
-        }
-
-        void setCircuits(vector<Circuit> circuits) { 
-            this->circuits = circuits;
-        }
-
-        //The mix method has to open n new threads, one for each double array in channels, and all of them run in parallel. When a chunk is finished, all the threads should join and the mixer has to retrieve their output buffer to play it back
-
-        void mix() { 
-            vector<vector<vector<double>>> chunks = utils.makeChunks(channels); //Separate the channel data into chunks for the Circuits
-            vector<CircuitWorker> workers;
-            
-            for(Circuit c : circuits) {
-                CircuitWorker cWorker = CirciitWorker(c);
-                workers.push_back(cWorker);
-
-            }
-
-            for(int i=0; i<chunks.size(); i++){
-                for(int j=0; j<chunks[i].size(); j++) {
-                    workers[i].addChunk(chunks[i][j]);
-                }
-            }
-        }
-                
-
-
-
-
-        }
-
-        
-            
-
-
-        
+    void processAudio(); 
 };
+
+#endif // MIXER_H
+
