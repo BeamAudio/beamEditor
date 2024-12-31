@@ -20,7 +20,7 @@ private:
 public:
     Circuit();
     Circuit(const vector<Component> components);
-    array<double, 100> processChunk(const array<double, 100>& inChunk);
+    vector<double> processChunk(const vector<double>& inChunk);
 };
 
 #endif // CIRCUIT_H
