@@ -11,11 +11,11 @@ class SimpleAmplifier : public Component {
       this-> alpha = alpha;
     }
 
-    array<double,100> processChunk(const array<double,100>& inChunk) {
-      array<double,100> outChunk;
-      outChunk.fill(0);
+    vector<double> processChunk(const vector<double>& inChunk) {
+      vector<double> outChunk;
+      
       for(size_t i = 0; i<inChunk.size(); i++) {
-        outChunk[i] = inChunk[i] * alpha;
+        outChunk.push_back(inChunk[i] * alpha);
       }
       return outChunk;
     }
