@@ -72,16 +72,16 @@ void Mixer::processAudio() {
             }
         }
 
-        // Retrieve processed chunks (asynchronously)
+        // Retrieve processed chunks (asynchronously with timeout)
         vector<vector<vector<double>>> processedChunks(numChannels); 
         bool allChunksReady = false;
         auto startTime = chrono::steady_clock::now(); 
-        while (!allChunksReady) {
+        while (!allChunksReady && (chrono::duration_cast<chrono::microseconds>(chrono::steady_clock::now() - startTime) < maxProcessingLatency)) { 
             allChunksReady = true;
             for (size_t i = 0; i < numChannels; ++i) {
                 processedChunks[i].resize(formats[i].numChannels); 
                 for (size_t j = 0; j < formats[i].numChannels; ++j) {
-                    if (pendingResults[currentChunkId][i][j].valid()) { 
+                    if (pendingResults[currentChunkId][i][j].wait_for(chrono::milliseconds(1)) == future_status::ready) { 
                         try {
                             processedChunks[i][j] = pendingResults[currentChunkId][i][j].get(); 
                         } catch (const exception& e) {
@@ -99,14 +99,13 @@ void Mixer::processAudio() {
                     break; 
                 }
             }
-            // Check if processing time exceeds the limit
-            auto now = chrono::steady_clock::now();
-            auto elapsed = chrono::duration_cast<chrono::microseconds>(now - startTime); 
-            if (elapsed > maxProcessingLatency) { 
-                cerr << "Bottleneck detected in circuit processing! Exceeded processing time limit." << endl;
-                isRunning = false; 
-                return;
-            }
+        }
+
+        // Check if all chunks were processed within the time limit
+        if (!allChunksReady) {
+            cerr << "Timeout: Failed to process all chunks within the allotted time." << endl;
+            // Consider handling this case (e.g., dropping the current chunk)
+            // ...
         }
 
         // Remove completed futures from the map
