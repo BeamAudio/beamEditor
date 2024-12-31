@@ -88,7 +88,7 @@ void Mixer::processAudio() {
         pendingResults.erase(currentChunkId); 
 
         // Mix processed chunks (implement mixing logic here)
-        vector<vector<double>> mixedOutput = utils.mixChannelsChunk(processedChunks, amplification, panning);
+        vector<double> mixedOutput = utils.mixChannelsChunk(processedChunks, amplification, panning);
 
         // Output the mixedOutput (implement output logic here)
         // ... (e.g., write to audio device)
