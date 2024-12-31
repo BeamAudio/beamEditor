@@ -18,7 +18,7 @@
 
 class Mixer {
 public:
-    Mixer(vector<AudioFormat> formats, vector<vector<double>> channels);
+    Mixer(vector<AudioFormat> formats, vector<vector<vector<double>>> channels);
     ~Mixer();
 
     void setCircuits(const vector<Circuit>& circuits);
@@ -32,7 +32,7 @@ private:
     vector<AudioFormat> formats;
     int numChannels;
     vector<Circuit> circuits;
-    vector<vector<double>> channels;
+    vector<vector<vector<double>>> channels;
     vector<double> amplification;
     vector<double> panning;
     AudioUtils utils;
