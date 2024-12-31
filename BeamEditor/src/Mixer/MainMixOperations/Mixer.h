@@ -1,4 +1,3 @@
-
 #ifndef MIXER_H
 #define MIXER_H
 
@@ -37,11 +36,11 @@ private:
     vector<double> panning;
     AudioUtils utils;
     atomic<bool> isRunning;
-    vector<unique_ptr<CircuitWorker>> workers; 
+    vector<vector<unique_ptr<CircuitWorker>>> workers; // 2D vector for workers (channel x subchannel)
     size_t currentChunkId;
     mutex mixerMutex;
     condition_variable chunkReadyCondVar; 
-    unordered_map<size_t, future<vector<double>>> pendingResults; 
+    unordered_map<size_t, vector<vector<future<vector<double>>>>> pendingResults; // Map of futures for each channel and subchannel
     chrono::steady_clock::time_point lastProcessTime; 
     const double targetSampleRate = 44100.0; // Sample rate in Hz
 
@@ -50,3 +49,33 @@ private:
 
 #endif // MIXER_H
 
+// CircuitWorker.h
+
+#ifndef CIRCUIT_WORKER_H
+#define CIRCUIT_WORKER_H
+
+#include <thread>
+#include <future>
+#include <mutex>
+#include <condition_variable>
+
+#include "Circuit.h"
+
+class CircuitWorker {
+public:
+    CircuitWorker(const Circuit& circuit, size_t channelIndex, size_t subchannelIndex);
+    future<vector<double>> addChunk(const vector<double>& chunk, size_t chunkId);
+
+private:
+    const Circuit& circuit;
+    size_t channelIndex;
+    size_t subchannelIndex;
+    thread workerThread;
+    mutex mutex_;
+    condition_variable condVar_;
+    queue<pair<vector<double>, size_t>> workQueue; 
+    bool isRunning;
+    void workerLoop();
+};
+
+#endif // CIRCUIT_WORKER_H
