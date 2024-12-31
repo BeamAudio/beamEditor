@@ -13,8 +13,8 @@ private:
 
 public:
     AudioUtils();
-    vector<vector<vector<double>>> makeChunks(vector<vector<double>> channels);
-    vector<double> mixChannelsChunk(const vector<vector<double>>& chunks, const vector<double>& amplification, const vector>double>& panning);
+    vector<vector<vector<vector<double>>>> makeChunks(const vector<vector<vector<double>>>& channels);
+    vector<double> mixChannelsChunk(const vector<vector<vector<double>>>& chunks, const vector<double>& amplification, const vector>double>& panning);
 };
 
 #endif // AUDIO_UTILS_H
