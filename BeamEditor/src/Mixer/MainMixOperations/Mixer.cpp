@@ -2,7 +2,7 @@
 
 #include "Mixer.h"
 
-Mixer::Mixer(vector<AudioFormat> formats, vector<vector<vector<double>>> channels) 
+Mixer::Mixer(vector<AudioFormat> formats, vector<vector<vector<double>>>& channels) 
     : formats(formats), numChannels(formats.size()), channels(channels), 
       amplification(numChannels, 1.0), panning(numChannels, 0.5), 
       isRunning(true), currentChunkId(0), 
@@ -61,6 +61,10 @@ void Mixer::stop() {
             workers[i][j]->condVar_.notify_one(); 
         }
     }
+}
+
+void Mixer::setChannels(vector<vector<vector<double>>>& channels) {
+    this->channels = channels;
 }
 
 void Mixer::processAudio() {
@@ -133,3 +137,5 @@ void Mixer::processAudio() {
         }
     }
 }
+
+

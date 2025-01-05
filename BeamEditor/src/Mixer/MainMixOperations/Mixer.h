@@ -17,12 +17,13 @@
 
 class Mixer {
 public:
-    Mixer(vector<AudioFormat> formats, vector<vector<vector<double>>> channels);
+    Mixer(vector<AudioFormat> formats, vector<vector<vector<double>>>& channels);
     ~Mixer();
 
     void setCircuits(const vector<Circuit>& circuits);
     void setAmplification(const vector<double>& amplification);
     void setPanning(const vector<double>& panning);
+    void setChannels(vector<vector<vector<double>>>& channels);
 
     void start();
     void stop();
@@ -49,33 +50,3 @@ private:
 
 #endif // MIXER_H
 
-// CircuitWorker.h
-
-#ifndef CIRCUIT_WORKER_H
-#define CIRCUIT_WORKER_H
-
-#include <thread>
-#include <future>
-#include <mutex>
-#include <condition_variable>
-
-#include "Circuit.h"
-
-class CircuitWorker {
-public:
-    CircuitWorker(const Circuit& circuit, size_t channelIndex, size_t subchannelIndex);
-    future<vector<double>> addChunk(const vector<double>& chunk, size_t chunkId);
-
-private:
-    const Circuit& circuit;
-    size_t channelIndex;
-    size_t subchannelIndex;
-    thread workerThread;
-    mutex mutex_;
-    condition_variable condVar_;
-    queue<pair<vector<double>, size_t>> workQueue; 
-    bool isRunning;
-    void workerLoop();
-};
-
-#endif // CIRCUIT_WORKER_H
