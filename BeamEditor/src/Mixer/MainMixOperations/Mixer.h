@@ -32,7 +32,7 @@ private:
     vector<AudioFormat> formats;
     int numChannels;
     vector<Circuit> circuits;
-    vector<vector<vector<double>>> channels;
+    vector<vector<vector<double>>>& channels;
     vector<double> amplification;
     vector<double> panning;
     AudioUtils utils;
