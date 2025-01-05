@@ -3,6 +3,7 @@
 
 #include<Processor/Architecture/FILE IO/MemoryLoader.h>
 #include<MemoryUnit/MemoryUnit.h>
+#include<AudioUtils/AudioUtils.h>
 using namespace std;
 
 class MemoryHandler {
@@ -10,6 +11,7 @@ private:
 
 	MemoryLoader loader;
 	MemoryUnit memory;
+	AudioUtils utils;
 
 public: 
 	MemoryHandler();
@@ -17,5 +19,12 @@ public:
 	void saveProject(const string& projectPath, const string& projectName);
 	vector<vector<vector<vector<double>>>> getChunks();
 	vector<vector<vector<double>>> getChannels();
+
+	
+
+	
+
 	
 };
+
+#endif MEMORY_HANDLER_H

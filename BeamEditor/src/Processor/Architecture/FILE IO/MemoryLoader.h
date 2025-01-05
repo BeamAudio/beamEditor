@@ -4,18 +4,13 @@
 
 #include <string>
 #include <vector>
+#include <AudioData.h>
 
 class MemoryLoader {
 public:
-    struct AudioData {
-        std::string filename;
-        std::vector<std::vector<double>> data;
-        int sampleRate;
-        int channels;
-        int bitRate;
-        long long frameCount;
-        double duration;
-    };
+    
+
+
 
     std::vector<AudioData> loadAudioFiles(const std::string& folderPath);
     bool writeAudioFile(const AudioData& audio, const std::string& outputPath);
