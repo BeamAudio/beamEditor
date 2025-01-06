@@ -16,12 +16,15 @@ class ProjectFile {
 private:
 	
 	map<int, AudioData> tracks;
+	ifstream projectReader;
+	ofstream projectWriter;
+
 
 public: 
 
 	ProjectFile();
-	void saveProject();
-	void readProject();
+	void saveProject(const string& projectPath);
+	void readProject(const string& projectPath);
 
 
 

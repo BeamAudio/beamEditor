@@ -5,6 +5,7 @@
 #include <string>
 #include <vector>
 #include <AudioData.h>
+#include<ProjectFile.h>
 
 class MemoryLoader {
 public:
@@ -17,6 +18,7 @@ public:
 
 private:
     AudioData loadAudioFile(const std::string& filePath);
+    ProjectFile project;
 };
 
 #endif // MEMORY_LOADER_H
